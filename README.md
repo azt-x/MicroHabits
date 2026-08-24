@@ -31,7 +31,7 @@ habit_completions
 
 - id
 - habit_id
-- completed_date
+- completed_at
 
 Relacje:
 
@@ -340,17 +340,17 @@ response: `200 OK`
     {
       "id": 10,
       "habit_id": 1,
-      "completed_date": 1787587283
+      "completed_at": 1787587283
     },
     {
       "id": 9,
       "habit_id": 1,
-      "completed_date": 1787500883
+      "completed_at": 1787500883
     },
     {
       "id": 8,
       "habit_id": 1,
-      "completed_date": 1787414483
+      "completed_at": 1787414483
     }
   ]
 }
@@ -368,7 +368,7 @@ response: `201 Created`
   "completion": {
     "id": 10,
     "habit_id": 1,
-    "completed_date": 1787587283
+    "completed_at": 1787587283
   }
 }
 ```

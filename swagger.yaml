@@ -1,0 +1,823 @@
+openapi: 3.0.3
+info:
+  title: MicroHabits API
+  version: 1.0.0
+  description: |
+    OpenAPI specification for the MicroHabits service.
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Habits
+  - name: Completions
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid JSON body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and get JWT token
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid JSON body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Missing, invalid, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /habits:
+    get:
+      tags: [Habits]
+      summary: List habits
+      operationId: listHabits
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          required: false
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+          description: Page size
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [created_at, updated_at, name]
+            default: created_at
+          required: false
+          description: Sort field
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          required: false
+          description: Sort direction
+      responses:
+        '200':
+          description: Habits list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitListResponse'
+        '401':
+          description: Missing, invalid, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Habits]
+      summary: Create a habit
+      operationId: createHabit
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HabitInput'
+      responses:
+        '201':
+          description: Habit created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitSingleResponse'
+        '400':
+          description: Invalid JSON body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /habits/{id}:
+    get:
+      tags: [Habits]
+      summary: Get a habit by ID
+      operationId: getHabit
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/HabitId'
+      responses:
+        '200':
+          description: Habit found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitSingleResponse'
+        '400':
+          description: Invalid habit ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Habit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Habits]
+      summary: Update a habit
+      operationId: updateHabit
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/HabitId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HabitInput'
+      responses:
+        '200':
+          description: Habit updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitSingleResponse'
+        '400':
+          description: Invalid habit ID or JSON body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Habit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Habits]
+      summary: Delete a habit
+      operationId: deleteHabit
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/HabitId'
+      responses:
+        '200':
+          description: Habit deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid habit ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Habit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /habits/{id}/completed:
+    get:
+      tags: [Completions]
+      summary: List habit completions
+      operationId: listCompletions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/HabitId'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          required: false
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+          required: false
+          description: Page size
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          required: false
+          description: Completion sort direction by completed_at
+      responses:
+        '200':
+          description: Completions list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompletionListResponse'
+        '400':
+          description: Invalid habit ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Habit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Completions]
+      summary: Create a completion for a habit
+      operationId: createCompletion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/HabitId'
+      responses:
+        '201':
+          description: Completion created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompletionSingleResponse'
+        '400':
+          description: Invalid habit ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Habit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /habits/{id}/completed/{completionId}:
+    delete:
+      tags: [Completions]
+      summary: Delete a completion from a habit
+      operationId: deleteCompletion
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/HabitId'
+        - $ref: '#/components/parameters/CompletionId'
+      responses:
+        '200':
+          description: Completion deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid habit ID or completion ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing, invalid, or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Habit or completion not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    HabitId:
+      in: path
+      name: id
+      required: true
+      description: Habit ID
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    CompletionId:
+      in: path
+      name: completionId
+      required: true
+      description: Completion ID
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    ErrorResponse:
+      type: object
+      required: [status, code, message]
+      properties:
+        status:
+          type: string
+          enum: [error]
+          example: error
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Invalid request data
+
+    RegisterRequest:
+      type: object
+      required: [email, username, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: test@example.com
+        username:
+          type: string
+          example: janek
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: password123
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: test@example.com
+        password:
+          type: string
+          format: password
+          example: password123
+
+    User:
+      type: object
+      required: [id, email, username, created_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        email:
+          type: string
+          format: email
+          example: test@example.com
+        username:
+          type: string
+          example: janek
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds)
+          example: 1787587283
+
+    Habit:
+      type: object
+      required: [id, user_id, name, description, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        user_id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: Czytanie
+        description:
+          type: string
+          example: Przeczytac 10 stron ksiazki
+        created_at:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds)
+          example: 1787587283
+        updated_at:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds)
+          example: 1787587283
+
+    Completion:
+      type: object
+      required: [id, habit_id, completed_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 10
+        habit_id:
+          type: integer
+          format: int64
+          example: 1
+        completed_at:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds)
+          example: 1787587283
+
+    HabitInput:
+      type: object
+      required: [name, description]
+      properties:
+        name:
+          type: string
+          example: Czytanie
+        description:
+          type: string
+          example: Przeczytac 10 stron ksiazki
+
+    AuthResponse:
+      type: object
+      required: [status, user]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        user:
+          $ref: '#/components/schemas/User'
+
+    LoginResponse:
+      type: object
+      required: [status, token, user]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/User'
+
+    HabitListResponse:
+      type: object
+      required: [status, page, limit, total, items]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 42
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Habit'
+
+    HabitSingleResponse:
+      type: object
+      required: [status, habit]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        habit:
+          $ref: '#/components/schemas/Habit'
+
+    CompletionSingleResponse:
+      type: object
+      required: [status, completion]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        completion:
+          $ref: '#/components/schemas/Completion'
+
+    CompletionListResponse:
+      type: object
+      required: [status, habit_id, page, limit, total, order, items]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        habit_id:
+          type: integer
+          format: int64
+          example: 1
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 30
+        total:
+          type: integer
+          example: 5
+        order:
+          type: string
+          enum: [ASC, DESC]
+          example: DESC
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Completion'
+
+    MessageResponse:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        message:
+          type: string
+          example: Habit deleted

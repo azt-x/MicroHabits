@@ -1,6 +1,14 @@
-#MicroHabits
+# MicroHabits
 
-Schemat bazy danych sqlite:
+MicroHabits to minimalistyczne API wspierające budowanie pozytywnych, codziennych rutyn.
+
+# Zakres funkcjonalny
+
+Uwierzytelnianie użytkowników (rejestrację i logowanie),
+Pełne zarządzanie nawykami (ich tworzenie, podgląd, edycję i usuwanie),
+Śledzenie postępów poprzez codzienne odznaczanie zrealizowanych zadań.
+
+# Schemat bazy danych sqlite
 
 users
     id
@@ -27,23 +35,43 @@ users 1 - N habits
 habits 1 - N habit_completions
 
 
-API
+# API
 
 POST /auth/register
 
-body: {
+body: 
+{
   "email": "test@example.com",
   "password": "password123"
 }
 
 POST /auth/login
 
-body: {
+body: 
+{
   "email": "test@example.com",
   "password": "password123"
 }
 
-response: {
+response: 
+{
     "status": "ok",
-    "token": 
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsImV4cGlyZXNfYXQiOiIxNzg3NTg3MjgzIn0.bTrYxu4vQV8tB8mCqFei6id7FDnN21OO0OsN6Mr8tUk"
+}
+
+
+
+
+# JWT
+
+Algorithm & Token Type
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+
+Payload
+{
+  "user_id":"1",
+  "expires_at":"1787587283"
 }

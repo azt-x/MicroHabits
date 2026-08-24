@@ -57,6 +57,14 @@ func (handler *Handler) Login(w http.ResponseWriter, request *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "token": token, "user": user})
 }
 
+func (handler *Handler) Me(w http.ResponseWriter, request *http.Request) {
+	user, ok := handler.service.AuthenticateRequestForHandler(w, request)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "user": user})
+}
+
 func decodeJSON(w http.ResponseWriter, request *http.Request, destination any) bool {
 	decoder := json.NewDecoder(request.Body)
 	if err := decoder.Decode(destination); err != nil {

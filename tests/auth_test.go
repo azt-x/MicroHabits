@@ -7,9 +7,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"microhabits/internal/auth"
 	"microhabits/internal/db"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func testService(t *testing.T) *auth.Service {
@@ -71,5 +74,28 @@ func TestAuthHandlers(t *testing.T) {
 	handler.Login(loginResponse, loginRequest)
 	if loginResponse.Code != http.StatusOK || !strings.Contains(loginResponse.Body.String(), `"token"`) {
 		t.Fatalf("unexpected login response: status=%d body=%s", loginResponse.Code, loginResponse.Body.String())
+	}
+}
+
+func TestExpiredTokenIsRejected(t *testing.T) {
+	service := testService(t)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": 1,
+		"exp":     time.Now().Add(-time.Minute).Unix(),
+	})
+	encoded, err := token.SignedString([]byte("test-secret"))
+	if err != nil {
+		t.Fatalf("sign expired token: %v", err)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/me", nil)
+	request.Header.Set("Authorization", "Bearer "+encoded)
+	response := httptest.NewRecorder()
+	service.AuthenticateRequestForHandler(response, request)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d body=%s", response.Code, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "TOKEN_EXPIRED") {
+		t.Fatalf("expected expired token code in response, got %s", response.Body.String())
 	}
 }

@@ -9,6 +9,7 @@ import (
 
 	"microhabits/internal/auth"
 	"microhabits/internal/db"
+	"microhabits/internal/habits"
 )
 
 func main() {
@@ -32,10 +33,22 @@ func main() {
 	}
 	defer database.Close()
 
-	authHandler := auth.NewHandler(auth.NewService(database, jwtSecret))
+	authService := auth.NewService(database, jwtSecret)
+	authHandler := auth.NewHandler(authService)
+	habitService := habits.NewService(database)
+	habitHandler := habits.NewHandler(habitService, authService)
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /auth/register", authHandler.Register)
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
+	mux.HandleFunc("GET /me", authHandler.Me)
+	mux.HandleFunc("GET /habits", habitHandler.ListHabits)
+	mux.HandleFunc("POST /habits", habitHandler.CreateHabit)
+	mux.HandleFunc("GET /habits/{id}", habitHandler.GetHabit)
+	mux.HandleFunc("PUT /habits/{id}", habitHandler.UpdateHabit)
+	mux.HandleFunc("DELETE /habits/{id}", habitHandler.DeleteHabit)
+	mux.HandleFunc("GET /habits/{id}/completed", habitHandler.ListCompletions)
+	mux.HandleFunc("POST /habits/{id}/completed", habitHandler.CreateCompletion)
+	mux.HandleFunc("DELETE /habits/{id}/completed/{completionId}", habitHandler.DeleteCompletion)
 
 	log.Println("MicroHabits API listening on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {

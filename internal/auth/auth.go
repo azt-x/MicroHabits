@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"net/http"
 	"strings"
 	"time"
 
@@ -15,6 +16,8 @@ var (
 	ErrEmailExists        = errors.New("email already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrValidation         = errors.New("validation error")
+	ErrInvalidToken       = errors.New("invalid token")
+	ErrTokenExpired       = errors.New("token expired")
 )
 
 type User struct {
@@ -98,3 +101,89 @@ func (service *Service) Login(ctx context.Context, email, password string) (User
 	}
 	return user, encodedToken, nil
 }
+
+func (service *Service) UserByID(ctx context.Context, userID int64) (User, error) {
+	var user User
+	if err := service.database.QueryRowContext(ctx, `
+		SELECT id, email, username, created_at
+		FROM users WHERE id = ?
+	`, userID).Scan(&user.ID, &user.Email, &user.Username, &user.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, ErrInvalidToken
+		}
+		return User{}, err
+	}
+	return user, nil
+}
+
+func (service *Service) ParseToken(tokenString string) (jwt.MapClaims, error) {
+	if strings.TrimSpace(tokenString) == "" {
+		return nil, ErrInvalidToken
+	}
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, ErrInvalidToken
+		}
+		return service.jwtSecret, nil
+	})
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, ErrTokenExpired
+		}
+		return nil, ErrInvalidToken
+	}
+	if !token.Valid {
+		return nil, ErrInvalidToken
+	}
+	return claims, nil
+}
+
+func (service *Service) AuthenticateRequest(request *http.Request) (User, error) {
+	header := request.Header.Get("Authorization")
+	if header == "" {
+		return User{}, ErrInvalidToken
+	}
+	parts := strings.SplitN(header, " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || strings.TrimSpace(parts[1]) == "" {
+		return User{}, ErrInvalidToken
+	}
+	claims, err := service.ParseToken(parts[1])
+	if err != nil {
+		return User{}, err
+	}
+	userIDValue, ok := claims["user_id"]
+	if !ok {
+		return User{}, ErrInvalidToken
+	}
+	var userID int64
+	switch value := userIDValue.(type) {
+	case float64:
+		userID = int64(value)
+	case int64:
+		userID = value
+	case int:
+		userID = int64(value)
+	case jsonNumber:
+		userID = int64(value)
+	default:
+		return User{}, ErrInvalidToken
+	}
+	return service.UserByID(request.Context(), userID)
+}
+
+func (service *Service) AuthenticateRequestForHandler(w http.ResponseWriter, request *http.Request) (User, bool) {
+	user, err := service.AuthenticateRequest(request)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrTokenExpired):
+			writeError(w, http.StatusUnauthorized, "TOKEN_EXPIRED", "Token has expired")
+		default:
+			writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "Token is missing or invalid")
+		}
+		return User{}, false
+	}
+	return user, true
+}
+
+type jsonNumber int64

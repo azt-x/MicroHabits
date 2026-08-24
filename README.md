@@ -148,7 +148,7 @@ Wszystkie endpointy poza `/auth/register` oraz `/auth/login` wymagają nagłówk
 Authorization: Bearer <token>
 ```
 
-W przypadku braku tokenu, niepoprawnego tokenu lub wygasłego tokenu API zwraca:
+W przypadku braku tokenu lub niepoprawnego tokenu API zwraca:
 
 ```text
 401 Unauthorized
@@ -161,6 +161,22 @@ z payloadem:
   "status": "error",
   "code": "INVALID_TOKEN",
   "message": "Token is missing or invalid"
+}
+```
+
+W przypadku wygasłego tokenu API zwraca:
+
+```text
+401 Unauthorized
+```
+
+z payloadem:
+
+```json
+{
+  "status": "error",
+  "code": "TOKEN_EXPIRED",
+  "message": "Token has expired"
 }
 ```
 
@@ -180,7 +196,7 @@ Wszystkie błędy w API zwracane są w jednym formacie:
 Najczęstsze kody błędów:
 
 - `400 BAD_REQUEST` - niepoprawne parametry zapytania lub body
-- `401 UNAUTHORIZED` - brak lub niepoprawny token
+- `401 UNAUTHORIZED` - brak, niepoprawny lub wygasły token
 - `403 FORBIDDEN` - brak dostępu do zasobu
 - `404 NOT_FOUND` - zasób nie istnieje
 - `409 CONFLICT` - konflikt stanu danych, np. duplikat emaila lub powtórne zaznaczenie tego samego dnia
@@ -419,5 +435,5 @@ Payload
 Encoded token:
 
 ```text
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsImV4cCI6MTc4NzU4NzI4M30.bTrYxu4vQV8tB8mCqFei6id7FDnN21OO0OsN6Mr8tUk
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsImV4cCI6IjE3ODc1ODcyODMifQ.GZ5Tk7dDEi0QGyXxO-xd0bh6TYtAYpJsIsp1ZoVmyzw
 ```

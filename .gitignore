@@ -2,3 +2,6 @@
 *.env
 *.exe
 /bin/
+*.db
+*.sqlite
+*.sqlite3

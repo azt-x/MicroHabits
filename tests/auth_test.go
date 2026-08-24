@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -97,5 +98,39 @@ func TestExpiredTokenIsRejected(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "TOKEN_EXPIRED") {
 		t.Fatalf("expected expired token code in response, got %s", response.Body.String())
+	}
+}
+
+func TestAuthResponseAndTokenPayloadOrder(t *testing.T) {
+	service := testService(t)
+	if _, err := service.Register(context.Background(), "order@example.com", "janek", "password123"); err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	handler := auth.NewHandler(service)
+	request := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"email":"order@example.com","password":"password123"}`))
+	response := httptest.NewRecorder()
+	handler.Login(response, request)
+	body := response.Body.String()
+	if strings.Index(body, `"status"`) > strings.Index(body, `"token"`) {
+		t.Fatalf("response fields are not ordered as status -> token -> user: %s", body)
+	}
+	if strings.Index(body, `"token"`) > strings.Index(body, `"user"`) {
+		t.Fatalf("response fields are not ordered as status -> token -> user: %s", body)
+	}
+
+	parts := strings.Split(response.Body.String(), `"token":"`)
+	if len(parts) < 2 {
+		t.Fatalf("token missing from response: %s", response.Body.String())
+	}
+	tokenValue := strings.SplitN(parts[1], `"`, 2)[0]
+	payload := strings.Split(tokenValue, ".")[1]
+	decodedBytes, err := base64.RawURLEncoding.DecodeString(payload)
+	if err != nil {
+		t.Fatalf("decode token payload: %v", err)
+	}
+	decoded := string(decodedBytes)
+	if strings.Index(decoded, `"user_id"`) > strings.Index(decoded, `"exp"`) {
+		t.Fatalf("token claims are not ordered as user_id -> exp: %s", decoded)
 	}
 }

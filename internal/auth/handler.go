@@ -20,6 +20,23 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+type authResponse struct {
+	Status string `json:"status"`
+	User   User   `json:"user"`
+}
+
+type loginResponse struct {
+	Status string `json:"status"`
+	Token  string `json:"token"`
+	User   User   `json:"user"`
+}
+
+type errorResponse struct {
+	Status  string `json:"status"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
 func (handler *Handler) Register(w http.ResponseWriter, request *http.Request) {
 	var input credentialsRequest
 	if !decodeJSON(w, request, &input) {
@@ -37,7 +54,7 @@ func (handler *Handler) Register(w http.ResponseWriter, request *http.Request) {
 		}
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"status": "ok", "user": user})
+	writeJSON(w, http.StatusCreated, authResponse{Status: "ok", User: user})
 }
 
 func (handler *Handler) Login(w http.ResponseWriter, request *http.Request) {
@@ -54,7 +71,7 @@ func (handler *Handler) Login(w http.ResponseWriter, request *http.Request) {
 		}
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "token": token, "user": user})
+	writeJSON(w, http.StatusOK, loginResponse{Status: "ok", Token: token, User: user})
 }
 
 func (handler *Handler) Me(w http.ResponseWriter, request *http.Request) {
@@ -62,7 +79,7 @@ func (handler *Handler) Me(w http.ResponseWriter, request *http.Request) {
 	if !ok {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "user": user})
+	writeJSON(w, http.StatusOK, authResponse{Status: "ok", User: user})
 }
 
 func decodeJSON(w http.ResponseWriter, request *http.Request, destination any) bool {
@@ -81,5 +98,5 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]any{"status": "error", "code": code, "message": message})
+	writeJSON(w, status, errorResponse{Status: "error", Code: code, Message: message})
 }

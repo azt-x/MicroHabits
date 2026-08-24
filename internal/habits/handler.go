@@ -21,6 +21,45 @@ type habitInput struct {
 	Description string `json:"description"`
 }
 
+type habitListResponse struct {
+	Status string  `json:"status"`
+	Page   int     `json:"page"`
+	Limit  int     `json:"limit"`
+	Total  int     `json:"total"`
+	Items  []Habit `json:"items"`
+}
+
+type habitSingleResponse struct {
+	Status string `json:"status"`
+	Habit  Habit  `json:"habit"`
+}
+
+type habitMessageResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+type completionSingleResponse struct {
+	Status     string     `json:"status"`
+	Completion Completion `json:"completion"`
+}
+
+type completionListResponse struct {
+	Status  string       `json:"status"`
+	HabitID int64        `json:"habit_id"`
+	Page    int          `json:"page"`
+	Limit   int          `json:"limit"`
+	Total   int          `json:"total"`
+	Order   string       `json:"order"`
+	Items   []Completion `json:"items"`
+}
+
+type authErrorResponse struct {
+	Status  string `json:"status"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
 func NewHandler(service *Service, authService *auth.Service) *Handler {
 	return &Handler{service: service, authService: authService}
 }
@@ -36,7 +75,7 @@ func (handler *Handler) ListHabits(w http.ResponseWriter, request *http.Request)
 		writeError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "page": page, "limit": limit, "total": total, "items": items})
+	writeJSON(w, http.StatusOK, habitListResponse{Status: "ok", Page: page, Limit: limit, Total: total, Items: items})
 }
 
 func (handler *Handler) CreateHabit(w http.ResponseWriter, request *http.Request) {
@@ -57,7 +96,7 @@ func (handler *Handler) CreateHabit(w http.ResponseWriter, request *http.Request
 		writeError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Internal server error")
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"status": "ok", "habit": habit})
+	writeJSON(w, http.StatusCreated, habitSingleResponse{Status: "ok", Habit: habit})
 }
 
 func (handler *Handler) GetHabit(w http.ResponseWriter, request *http.Request) {
@@ -82,7 +121,7 @@ func (handler *Handler) GetHabit(w http.ResponseWriter, request *http.Request) {
 		}
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "habit": habit})
+	writeJSON(w, http.StatusOK, habitSingleResponse{Status: "ok", Habit: habit})
 }
 
 func (handler *Handler) UpdateHabit(w http.ResponseWriter, request *http.Request) {
@@ -113,7 +152,7 @@ func (handler *Handler) UpdateHabit(w http.ResponseWriter, request *http.Request
 		}
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "habit": habit})
+	writeJSON(w, http.StatusOK, habitSingleResponse{Status: "ok", Habit: habit})
 }
 
 func (handler *Handler) DeleteHabit(w http.ResponseWriter, request *http.Request) {
@@ -137,7 +176,7 @@ func (handler *Handler) DeleteHabit(w http.ResponseWriter, request *http.Request
 		}
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "message": "Habit deleted"})
+	writeJSON(w, http.StatusOK, habitMessageResponse{Status: "ok", Message: "Habit deleted"})
 }
 
 func (handler *Handler) ListCompletions(w http.ResponseWriter, request *http.Request) {
@@ -163,7 +202,7 @@ func (handler *Handler) ListCompletions(w http.ResponseWriter, request *http.Req
 		}
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "habit_id": habitID, "page": page, "limit": limit, "total": total, "order": normalizeOrder(request.URL.Query().Get("order")), "items": items})
+	writeJSON(w, http.StatusOK, completionListResponse{Status: "ok", HabitID: habitID, Page: page, Limit: limit, Total: total, Order: normalizeOrder(request.URL.Query().Get("order")), Items: items})
 }
 
 func (handler *Handler) CreateCompletion(w http.ResponseWriter, request *http.Request) {
@@ -188,7 +227,7 @@ func (handler *Handler) CreateCompletion(w http.ResponseWriter, request *http.Re
 		}
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"status": "ok", "completion": completion})
+	writeJSON(w, http.StatusCreated, completionSingleResponse{Status: "ok", Completion: completion})
 }
 
 func (handler *Handler) DeleteCompletion(w http.ResponseWriter, request *http.Request) {
@@ -219,7 +258,7 @@ func (handler *Handler) DeleteCompletion(w http.ResponseWriter, request *http.Re
 		}
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "message": "Completion deleted"})
+	writeJSON(w, http.StatusOK, habitMessageResponse{Status: "ok", Message: "Completion deleted"})
 }
 
 func (handler *Handler) requireAuth(w http.ResponseWriter, request *http.Request) (auth.User, bool) {
@@ -269,7 +308,7 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]any{"status": "error", "code": code, "message": message})
+	writeJSON(w, status, authErrorResponse{Status: "error", Code: code, Message: message})
 }
 
 func normalizeListOrder(input string) string {

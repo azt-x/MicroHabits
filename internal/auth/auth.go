@@ -73,6 +73,45 @@ func (service *Service) Register(ctx context.Context, email, username, password 
 	return User{ID: id, Email: email, Username: username, CreatedAt: createdAt}, nil
 }
 
+type TokenClaims struct {
+	UserID int64 `json:"user_id"`
+	Exp    int64 `json:"exp"`
+}
+
+func (claims TokenClaims) GetAudience() (jwt.ClaimStrings, error) {
+	return nil, nil
+}
+
+func (claims TokenClaims) GetExpirationTime() (*jwt.NumericDate, error) {
+	if claims.Exp == 0 {
+		return nil, nil
+	}
+	return jwt.NewNumericDate(time.Unix(claims.Exp, 0)), nil
+}
+
+func (claims TokenClaims) GetIssuedAt() (*jwt.NumericDate, error) {
+	return nil, nil
+}
+
+func (claims TokenClaims) GetIssuer() (string, error) {
+	return "", nil
+}
+
+func (claims TokenClaims) GetNotBefore() (*jwt.NumericDate, error) {
+	return nil, nil
+}
+
+func (claims TokenClaims) GetSubject() (string, error) {
+	return "", nil
+}
+
+func (claims TokenClaims) Valid() error {
+	if claims.Exp > 0 && time.Now().Unix() >= claims.Exp {
+		return jwt.ErrTokenExpired
+	}
+	return nil
+}
+
 func (service *Service) Login(ctx context.Context, email, password string) (User, string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	var user User
@@ -90,11 +129,11 @@ func (service *Service) Login(ctx context.Context, email, password string) (User
 		return User{}, "", ErrInvalidCredentials
 	}
 
-	expiresAt := service.now().Add(service.tokenTTL)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"exp":     expiresAt.Unix(),
-	})
+	claims := TokenClaims{
+		UserID: user.ID,
+		Exp:    service.now().Add(service.tokenTTL).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	encodedToken, err := token.SignedString(service.jwtSecret)
 	if err != nil {
 		return User{}, "", err

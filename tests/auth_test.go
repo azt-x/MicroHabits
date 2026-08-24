@@ -1,4 +1,4 @@
-package auth
+package tests
 
 import (
 	"context"
@@ -7,21 +7,19 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
+	"microhabits/internal/auth"
 	"microhabits/internal/db"
 )
 
-func testService(t *testing.T) *Service {
+func testService(t *testing.T) *auth.Service {
 	t.Helper()
 	database, err := db.Open(context.Background(), "file:auth-test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open database: %v", err)
 	}
 	t.Cleanup(func() { database.Close() })
-	service := NewService(database, "test-secret")
-	service.now = func() time.Time { return time.Unix(1787529600, 0) }
-	return service
+	return auth.NewService(database, "test-secret")
 }
 
 func TestRegisterHashesPasswordAndLoginReturnsToken(t *testing.T) {
@@ -42,7 +40,7 @@ func TestRegisterHashesPasswordAndLoginReturnsToken(t *testing.T) {
 		t.Fatalf("unexpected login result: user=%+v token=%q", loggedInUser, token)
 	}
 
-	if _, _, err := service.Login(context.Background(), "test@example.com", "wrong-password"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := service.Login(context.Background(), "test@example.com", "wrong-password"); !errors.Is(err, auth.ErrInvalidCredentials) {
 		t.Fatalf("expected invalid credentials, got %v", err)
 	}
 }
@@ -52,14 +50,14 @@ func TestRegisterRejectsDuplicateEmail(t *testing.T) {
 	if _, err := service.Register(context.Background(), "test@example.com", "first", "password123"); err != nil {
 		t.Fatalf("first register: %v", err)
 	}
-	if _, err := service.Register(context.Background(), "TEST@example.com", "second", "password123"); !errors.Is(err, ErrEmailExists) {
+	if _, err := service.Register(context.Background(), "TEST@example.com", "second", "password123"); !errors.Is(err, auth.ErrEmailExists) {
 		t.Fatalf("expected duplicate email error, got %v", err)
 	}
 }
 
 func TestAuthHandlers(t *testing.T) {
 	service := testService(t)
-	handler := NewHandler(service)
+	handler := auth.NewHandler(service)
 
 	registerRequest := httptest.NewRequest(http.MethodPost, "/auth/register", strings.NewReader(`{"email":"test@example.com","username":"janek","password":"password123"}`))
 	registerResponse := httptest.NewRecorder()

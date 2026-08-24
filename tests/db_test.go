@@ -1,14 +1,16 @@
-package db
+package tests
 
 import (
 	"context"
 	"database/sql"
 	"testing"
+
+	"microhabits/internal/db"
 )
 
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	database, err := Open(context.Background(), "file:test?mode=memory&cache=shared")
+	database, err := db.Open(context.Background(), "file:test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open database: %v", err)
 	}

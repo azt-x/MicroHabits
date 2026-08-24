@@ -140,9 +140,21 @@ response: `200 OK`
 }
 ```
 
+### GET /health
+
+Sprawdza dostępność API. Endpoint nie wymaga autoryzacji.
+
+response: `200 OK`
+
+```json
+{
+  "status": "ok"
+}
+```
+
 ## Autoryzacja
 
-Wszystkie endpointy poza `/auth/register` oraz `/auth/login` wymagają nagłówka:
+Wszystkie endpointy poza `/health`, `/auth/register` oraz `/auth/login` wymagają nagłówka:
 
 ```text
 Authorization: Bearer <token>

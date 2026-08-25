@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,6 +19,9 @@ var (
 	ErrValidation         = errors.New("validation error")
 	ErrInvalidToken       = errors.New("invalid token")
 	ErrTokenExpired       = errors.New("token expired")
+	emailRegex            = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
+	passwordLetterRegex   = regexp.MustCompile(`[A-Za-z]`)
+	passwordDigitRegex    = regexp.MustCompile(`\d`)
 )
 
 type User struct {
@@ -46,7 +50,7 @@ func NewService(database *sql.DB, jwtSecret string) *Service {
 func (service *Service) Register(ctx context.Context, email, username, password string) (User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	username = strings.TrimSpace(username)
-	if email == "" || username == "" || len(password) < 8 {
+	if email == "" || username == "" || !isValidEmail(email) || !isValidPassword(password) {
 		return User{}, ErrValidation
 	}
 
@@ -71,6 +75,17 @@ func (service *Service) Register(ctx context.Context, email, username, password 
 		return User{}, err
 	}
 	return User{ID: id, Email: email, Username: username, CreatedAt: createdAt}, nil
+}
+
+func isValidEmail(email string) bool {
+	return emailRegex.MatchString(email)
+}
+
+func isValidPassword(password string) bool {
+	if len(password) < 8 || len(password) > 72 {
+		return false
+	}
+	return passwordLetterRegex.MatchString(password) && passwordDigitRegex.MatchString(password)
 }
 
 type TokenClaims struct {

@@ -59,6 +59,22 @@ func TestRegisterRejectsDuplicateEmail(t *testing.T) {
 	}
 }
 
+func TestRegisterRejectsInvalidEmailOrPassword(t *testing.T) {
+	service := testService(t)
+
+	if _, err := service.Register(context.Background(), "invalid-email", "janek", "password123"); !errors.Is(err, auth.ErrValidation) {
+		t.Fatalf("expected validation error for invalid email, got %v", err)
+	}
+
+	if _, err := service.Register(context.Background(), "test2@example.com", "janek", "password"); !errors.Is(err, auth.ErrValidation) {
+		t.Fatalf("expected validation error for password without digit, got %v", err)
+	}
+
+	if _, err := service.Register(context.Background(), "test3@example.com", "janek", "12345678"); !errors.Is(err, auth.ErrValidation) {
+		t.Fatalf("expected validation error for password without letter, got %v", err)
+	}
+}
+
 func TestAuthHandlers(t *testing.T) {
 	service := testService(t)
 	handler := auth.NewHandler(service)

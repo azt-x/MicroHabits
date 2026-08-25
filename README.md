@@ -120,7 +120,6 @@ response: `200 OK`
 Błędy:
 
 - `401 UNAUTHORIZED` z `code: "INVALID_CREDENTIALS"`
-- `429 TOO_MANY_REQUESTS` z `code: "RATE_LIMITED"` przy zbyt wielu próbach logowania
 
 ### GET /me
 
@@ -212,7 +211,7 @@ Najczęstsze kody błędów:
 - `403 FORBIDDEN` - brak dostępu do zasobu
 - `404 NOT_FOUND` - zasób nie istnieje
 - `409 CONFLICT` - konflikt stanu danych, np. duplikat emaila lub powtórne zaznaczenie tego samego dnia
-- `422 UNPROCESSABLE_ENTITY` - poprawny JSON, ale błędne dane biznesowe
+- `422 UNPROCESSABLE_ENTITY` - poprawny JSON, ale błędne dane
 - `429 TOO_MANY_REQUESTS` - przekroczony limit żądań
 - `500 INTERNAL_SERVER_ERROR` - nieoczekiwany błąd po stronie serwera
 
